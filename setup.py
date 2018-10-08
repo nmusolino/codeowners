@@ -32,7 +32,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    description="Utility for Tool for identifying the owners of files under Github's CODEOWNERS feature.",
+    description="Utility for identifying the owners of files under Github's CODEOWNERS feature.",
     entry_points={
         'console_scripts': [
             'codeowners=codeowners.cli:main',
