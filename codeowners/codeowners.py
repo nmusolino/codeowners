@@ -29,7 +29,8 @@ class Pattern:
         # This is wrong when `path` is shorter than `path.pattern`.
 
         return all(path_part is not None and fnmatch.fnmatch(path_part, pat_part)
-                   for pat_part, path_part in zip(self.pattern.parts, itertools.chain(path.parts, itertools.repeat(None))))
+                   for pat_part, path_part in zip(self.pattern.parts,
+                                                  itertools.chain(path.parts, itertools.repeat(None))))
 
     def _match_recursive(self, path: PurePath):
         raise NotImplementedError()
@@ -72,6 +73,6 @@ def parse_pattern(pattern: str) -> Pattern:
     path = PurePath(pattern)
     for part in path.parts:
         if '**' in part and part != '**':
-            raise ValueError("Recursive wildcard '**' must constitute entire path component, e.g. 'a/**/b': {!r}".format(pattern))
+            raise ValueError("Recursive wildcard '**' must constitute entire path component: {!r}".format(pattern))
 
     return Pattern(path, dir_only=dir_only, invert=invert)
