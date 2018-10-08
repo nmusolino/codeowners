@@ -1,38 +1,110 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+""" Tests for `codeowners` module.  """
 
-"""Tests for `codeowners` package."""
+from pathlib import PurePath
 
 import pytest
 
-from click.testing import CliRunner
-
 from codeowners import codeowners
-from codeowners import cli
 
 
-@pytest.fixture
-def response():
-    """Sample pytest fixture.
-
-    See more at: http://doc.pytest.org/en/latest/fixture.html
-    """
-    # import requests
-    # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+def test_is_pattern():
+    assert codeowners.is_pattern('*.py')
+    assert codeowners.is_pattern('a/b')
+    assert not codeowners.is_pattern('# Comment')
+    assert not codeowners.is_pattern('')
+    assert not codeowners.is_pattern(' ')
 
 
-def test_content(response):
-    """Sample pytest test function with the pytest fixture as an argument."""
-    # from bs4 import BeautifulSoup
-    # assert 'GitHub' in BeautifulSoup(response.content).title.string
+def test_parse_pattern():
+    with pytest.raises(ValueError):
+        codeowners.parse_pattern('a/**b/c')
+
+    pat1 = codeowners.parse_pattern('!a/b')
+    assert pat1.invert, "Prefix '!' should negate the pattern."
+    assert pat1.pattern == PurePath('a/b')
+
+    pat2 = codeowners.parse_pattern('a/b/')
+    assert pat2.dir_only, "Prefix '!' should negate the pattern."
+    assert pat2.pattern == PurePath('a/b')
 
 
-def test_command_line_interface():
-    """Test the CLI."""
-    runner = CliRunner()
-    result = runner.invoke(cli.main)
-    assert result.exit_code == 0
-    assert 'codeowners.cli.main' in result.output
-    help_result = runner.invoke(cli.main, ['--help'])
-    assert help_result.exit_code == 0
-    assert '--help  Show this message and exit.' in help_result.output
+def test_pattern_match():
+    nested_pat = codeowners.parse_pattern('a/b')
+    assert not nested_pat.match('a')
+    assert nested_pat.match('a/b')
+    assert nested_pat.match('a/b/c')
+    assert nested_pat.match('a/b/c/d')
+    assert not nested_pat.match('a/z')
+    assert not nested_pat.match('b')
+    assert not nested_pat.match('a/bbbb')
+    assert not nested_pat.match('z/a/b')
+
+    pat = codeowners.parse_pattern('a/*.py')
+    assert not pat.match('a')
+    assert pat.match('a/file.py')
+    assert not pat.match('file.py')
+    assert not pat.match('b/file.py')
+    assert not pat.match('b/c/file.py')
+
+
+def test_pattern_match_single_component():
+    bare_pat = codeowners.parse_pattern('*.py')
+    assert bare_pat.match('file.py')
+    assert bare_pat.match('a/file.py')
+    assert bare_pat.match('a/b/file.py')
+    assert not bare_pat.match('file.txt')
+
+    bare_pat = codeowners.parse_pattern('docs*')
+    assert bare_pat.match('docs.txt')
+    assert bare_pat.match('docs1/', is_dir=True)
+    assert bare_pat.match('docs1/output.txt')
+    assert bare_pat.match('output/docs1/', is_dir=True)
+    assert bare_pat.match('output/docs1/output.txt', is_dir=True)
+
+
+@pytest.mark.xfail
+def test_pattern_match_recursive():
+    rec_pat = codeowners.parse_pattern('a/**/b')
+    assert rec_pat.match('a/b')
+    assert rec_pat.match('a/x/b')
+    assert rec_pat.match('a/x/y/z/b')
+    assert rec_pat.match('a/x/y/z/c')
+
+
+@pytest.mark.xfail
+def test_pattern_match_trailing_spaces():
+    pat = codeowners.parse_pattern(r'a/b\ ')
+    assert pat.match('a/b ')
+    assert not pat.match('a/b')
+
+
+@pytest.mark.xfail
+def test_pattern_match_quoted_character():
+    pat = codeowners.parse_pattern(r'a/b\?')
+    assert pat.match('a/b?')
+    assert not pat.match('a/bx')
+
+
+@pytest.mark.xfail
+def test_pattern_match_rooted():
+    root_pat = codeowners.parse_pattern('/a')
+    assert root_pat.match('a')
+    assert root_pat.match('a/b')
+    assert not root_pat.match('x/a')
+
+
+def test_pattern_match_directory_only():
+    dir_pat = codeowners.parse_pattern('bin/')
+    assert dir_pat.match('bin', is_dir=True)
+    assert dir_pat.match('output/bin', is_dir=True)
+
+    assert not dir_pat.match('bin', is_dir=False)
+    assert not dir_pat.match('output/bin', is_dir=False)
+
+
+def test_pattern_match_inverted():
+    inv_pat = codeowners.parse_pattern('!a/*.py')
+    assert not inv_pat.match('a/file.py')
+    assert inv_pat.match('file.py')
+    assert inv_pat.match('b/file.py')
+    assert inv_pat.match('b/file.txt')
