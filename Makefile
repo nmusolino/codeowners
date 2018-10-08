@@ -88,3 +88,10 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+install-dev-deps:
+	pipenv run pip install pip==18.0
+	pipenv install --dev
+
+install-develop: install-dev-deps  ## install the package in an editable fashion, using pipenv
+	pipenv install -e .
