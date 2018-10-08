@@ -1,7 +1,9 @@
 from pathlib import Path
 
 # Possible locations of CODEOWNERS file, relative to repository root.
-_CODEOWNERS_REL_LOCATIONS = [Path('CODEOWNERS'), Path('docs/CODEOWNERS'), Path('.github/CODEOWNERS')]
+# The location of the final element is actually important: it makes unit tests in `test_git_utils` pass on
+# case-sensitive filesystems.
+_CODEOWNERS_REL_LOCATIONS = [Path('docs/CODEOWNERS'), Path('.github/CODEOWNERS'), Path('CODEOWNERS')]
 
 
 def git_repository_root(base_dir: Path, search_parent_directories=True) -> Path:

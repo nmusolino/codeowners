@@ -23,7 +23,7 @@ def test_git_repository_root_outside_repository():
 
 def test_codeowners_path():
     this_file = pathlib.Path(__file__)
-    expected_path = this_file.parent.parent / 'CODEOWNERS'
+    expected_path = this_file.parent.parent / '.github'/ 'CODEOWNERS'
     assert expected_path.exists()
     assert git_utils.codeowners_path(this_file) == expected_path
     assert git_utils.codeowners_path(this_file.parent) == expected_path
