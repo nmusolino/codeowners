@@ -13,6 +13,10 @@ _logger = logging.getLogger(__file__)
 
 
 class Pattern:
+    @classmethod
+    def parse(cls, pattern: str):
+        return parse_pattern(pattern)
+
     def __init__(self, pattern: PurePath, dir_only: bool, invert: bool):
         self.pattern = pattern
         self.dir_only = dir_only
@@ -24,6 +28,14 @@ class Pattern:
             self._match_impl = self._match_single_part
         else:
             self._match_impl = self._match_leading
+
+    def __str__(self):
+        notes = (['directory only'] if self.dir_only else []) + (['inverted'] if self.invert else [])
+        return '{}{}'.format(self.pattern, ' [{}]'.format(', '.join(notes)) if notes else '')
+
+    def __repr__(self):
+        return '{cls}(pattern={pattern!r}, dir_only={dir_only!r}, invert={invert!r}'.format(
+            cls=self.__class__.__name__, pattern=self.pattern, dir_only=self.dir_only, invert=self.invert)
 
     def _match_leading(self, path: PurePath):
         # This is wrong when `path` is shorter than `path.pattern`.
