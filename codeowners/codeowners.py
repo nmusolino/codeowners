@@ -1,11 +1,12 @@
 """ Functions and classes for identifying code owners.
 
-* All PurePath.  This ensures there is no filesystem access.
 """
+from collections import namedtuple
 import itertools
 import fnmatch
 import logging
 from pathlib import PurePath
+import shlex
 import typing
 
 
@@ -59,14 +60,15 @@ class Pattern:
         return (not match_result) if self.invert else match_result
 
 
-def is_pattern(line: str) -> bool:
+def is_rule(line: str) -> bool:
+    """ Return whether the given line is a pattern.  Does not validate input.  """
     return not (line.startswith('#') or (line.strip() == ''))
 
 
 def parse_pattern(pattern: str) -> Pattern:
-    # Not handled:  trailing spaces quoted with backslash.
-    pattern = pattern.rstrip()
-
+    # Note that this function must not rstrip() the pattern:  escaped spaces are handled
+    # elsewhere, so by the time pattern reaches this functions, the spaces are desired and
+    # should be preserved.
     invert = False
     dir_only = False
 
@@ -88,3 +90,30 @@ def parse_pattern(pattern: str) -> Pattern:
             raise ValueError("Recursive wildcard '**' must constitute entire path component: {!r}".format(pattern))
 
     return Pattern(path, dir_only=dir_only, invert=invert)
+
+
+class MatchResult(namedtuple('MatchResultData', 'path, owners, source_line, source_filename, source_lineno')):
+    def summary(self) -> str:
+        return '{path}: {owners}'.format(path=self.path, owners=' '.join(self.owners))
+
+
+class Rule(namedtuple('RuleData', 'pattern, owners, source_line, source_filename, source_lineno')):
+    def match(self, path, is_dir=False) -> typing.Optional[MatchResult]:
+        return (MatchResult(path=path, owners=self.owners, source_line=self.source_line,
+                           source_filename=self.source_filename, source_lineno=self.source_lineno)
+                if self.pattern.match(path, is_dir=is_dir) else None)
+
+
+def parse_codeowners(lines: typing.Iterable[str], source_filename: str) -> typing.List[Rule]:
+    def parse_line(line, source_lineno):
+        pattern, *owners = shlex.split(line)  # Handle escaped spaces.
+
+        return Rule(pattern=parse_pattern(pattern), owners=owners,
+                    source_filename=source_filename, source_lineno=source_lineno, source_line=line)
+
+    return [parse_line(line, i) for i, line in enumerate(lines, start=1) if is_rule(line)][::-1]
+
+
+def match(rules, path, is_dir=False):
+    return next(filter(lambda res: res is not None, (rule.match(path, is_dir=is_dir) for rule in rules)),
+                None)

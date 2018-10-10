@@ -7,13 +7,6 @@ import pytest
 from codeowners import codeowners
 
 
-def test_is_pattern():
-    assert codeowners.is_pattern('*.py')
-    assert codeowners.is_pattern('a/b')
-    assert not codeowners.is_pattern('# Comment')
-    assert not codeowners.is_pattern('')
-    assert not codeowners.is_pattern(' ')
-
 
 def test_parse_pattern():
     with pytest.raises(ValueError):
@@ -48,18 +41,20 @@ def test_pattern_match():
 
 
 def test_pattern_match_single_component():
-    bare_pat = codeowners.parse_pattern('*.py')
-    assert bare_pat.match('file.py')
-    assert bare_pat.match('a/file.py')
-    assert bare_pat.match('a/b/file.py')
-    assert not bare_pat.match('file.txt')
+    pat1 = codeowners.parse_pattern('*.py')
+    assert pat1.match('file.py')
+    assert pat1.match('a/file.py')
+    assert pat1.match('a/b/file.py')
+    assert not pat1.match('file.txt')
 
-    bare_pat = codeowners.parse_pattern('docs*')
-    assert bare_pat.match('docs.txt')
-    assert bare_pat.match('docs1/', is_dir=True)
-    assert bare_pat.match('docs1/output.txt')
-    assert bare_pat.match('output/docs1/', is_dir=True)
-    assert bare_pat.match('output/docs1/output.txt', is_dir=True)
+    assert codeowners.parse_pattern('*.txt').match('test.txt')
+
+    pat2 = codeowners.parse_pattern('docs*')
+    assert pat2.match('docs.txt')
+    assert pat2.match('docs1/', is_dir=True)
+    assert pat2.match('docs1/output.txt')
+    assert pat2.match('output/docs1/', is_dir=True)
+    assert pat2.match('output/docs1/output.txt', is_dir=True)
 
 
 @pytest.mark.xfail
@@ -71,9 +66,8 @@ def test_pattern_match_recursive():
     assert rec_pat.match('a/x/y/z/c')
 
 
-@pytest.mark.xfail
 def test_pattern_match_trailing_spaces():
-    pat = codeowners.parse_pattern(r'a/b\ ')
+    pat = codeowners.parse_pattern('a/b ')
     assert pat.match('a/b ')
     assert not pat.match('a/b')
 
@@ -101,10 +95,60 @@ def test_pattern_match_directory_only():
     assert not dir_pat.match('bin', is_dir=False)
     assert not dir_pat.match('output/bin', is_dir=False)
 
-
 def test_pattern_match_inverted():
     inv_pat = codeowners.parse_pattern('!a/*.py')
     assert not inv_pat.match('a/file.py')
     assert inv_pat.match('file.py')
     assert inv_pat.match('b/file.py')
     assert inv_pat.match('b/file.txt')
+
+def test_is_rule():
+    assert codeowners.is_rule('*.py ')
+    assert codeowners.is_rule('a/b')
+    assert not codeowners.is_rule('# Comment')
+    assert not codeowners.is_rule('')
+    assert not codeowners.is_rule(' ')
+
+def test_parse_codeowners():
+    # Test that comments are properly ignored, and that
+    lines = ['*.*     @general_owner',
+             '*.py    @a @b',
+             '# Text files',
+             '*.txt   @x @y',]
+    rules = codeowners.parse_codeowners(lines, source_filename='CODEOWNERS')
+
+    result1 = codeowners.match(rules, 'file.py')
+    assert result1.path == 'file.py'
+    assert result1.owners == ['@a', '@b']
+    assert result1.source_lineno == 2
+    assert result1.source_filename == 'CODEOWNERS'
+    assert result1.source_line == lines[1]
+
+    result2 = codeowners.match(rules, 'test.txt')
+    assert result2.path == 'test.txt'
+    assert result2.owners == ['@x', '@y']
+    assert result2.source_lineno == 4
+    assert result2.source_filename == 'CODEOWNERS'
+    assert result2.source_line == lines[3]
+
+    result3 = codeowners.match(rules, 'sample.pyc')
+    assert result3.owners == ['@general_owner']
+    assert result3.source_lineno == 1
+
+    result4 = codeowners.match(rules, 'c')
+    assert result4 is None
+
+def test_parse_codeowners_escaped_spaces():
+    lines = ['*\ docs.txt  @owner1',
+             'ab\          @owner2']
+    rules = codeowners.parse_codeowners(lines, source_filename='CODEOWNERS')
+
+    result1 = codeowners.match(rules, 'my docs.txt')
+    assert result1 is not None
+    assert result1.owners == ['@owner1']
+
+    result2 = codeowners.match(rules, 'ab ')
+    assert result2 is not None
+    assert result2.owners == ['@owner2']
+
+    assert codeowners.match(rules, 'ab') is None
