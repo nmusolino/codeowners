@@ -20,6 +20,10 @@ def test_parse_pattern():
     assert pat2.dir_only, "Prefix '!' should negate the pattern."
     assert pat2.pattern == PurePath('a/b')
 
+def test_pattern_str():
+    pat = codeowners.Pattern.parse('a/b')
+    assert str(pat) == 'a/b'
+    repr(pat)    # Confirm this does not raise.
 
 def test_pattern_match():
     nested_pat = codeowners.parse_pattern('a/b')
