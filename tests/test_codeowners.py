@@ -76,12 +76,12 @@ def test_pattern_match_trailing_spaces():
     assert not pat.match('a/b')
 
 
-@pytest.mark.xfail
 def test_pattern_match_rooted():
     root_pat = codeowners.parse_pattern('/a')
     assert root_pat.match('a')
     assert root_pat.match('a/b')
     assert not root_pat.match('x/a')
+    assert not root_pat.match('b')
 
 
 def test_pattern_match_directory_only():
