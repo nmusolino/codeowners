@@ -1,33 +1,53 @@
-import pathlib
+from pathlib import Path
+import tempfile
 
 import pytest
 
 from codeowners import fs_utils
 
 
-def test_git_repository_root():
-    this_file = pathlib.Path(__file__)
-    assert fs_utils.git_repository_root(this_file) == this_file.parent.parent
+@pytest.fixture(scope='function')
+def repository_directory():
+    """ Return a temporary directory, with a fake (empty) .git directory contained within. """
+    with tempfile.TemporaryDirectory(prefix='test_fs_utils_') as temp_dir_name:
+        temp_dir_path = Path(temp_dir_name)
+        (temp_dir_path / '.git').mkdir()
+        yield temp_dir_path
 
 
-def test_git_repository_root_no_parents():
+def test_git_repository_root(repository_directory):
+    assert fs_utils.git_repository_root(repository_directory) == repository_directory
+    assert fs_utils.git_repository_root(repository_directory / 'a') == repository_directory
+    assert fs_utils.git_repository_root(repository_directory / 'a' / 'b') == repository_directory
+
+    # When search_parent_directories is False, only the repository directory will work.
+    assert fs_utils.git_repository_root(repository_directory, search_parent_directories=False) == repository_directory
+
     with pytest.raises(FileNotFoundError):
-        fs_utils.git_repository_root(pathlib.Path(__file__), search_parent_directories=False)
+        fs_utils.git_repository_root(repository_directory / 'a', search_parent_directories=False)
+
+    with pytest.raises(FileNotFoundError):
+        fs_utils.git_repository_root(repository_directory / 'a' / 'b', search_parent_directories=False)
 
 
 def test_git_repository_root_outside_repository():
     with pytest.raises(FileNotFoundError):
-        fs_utils.git_repository_root(pathlib.Path())
-        fs_utils.git_repository_root(pathlib.Path('/'))
+        fs_utils.git_repository_root(Path())
+        fs_utils.git_repository_root(Path('/'))
 
 
-def test_codeowners_path():
-    this_file = pathlib.Path(__file__)
-    expected_path = this_file.parent.parent / '.github'/ 'CODEOWNERS'
-    assert expected_path.exists()
-    assert fs_utils.codeowners_path(this_file) == expected_path
-    assert fs_utils.codeowners_path(this_file.parent) == expected_path
-    assert fs_utils.codeowners_path(this_file.parent.parent) == expected_path
+def test_codeowners_path(repository_directory):
+    with pytest.raises(FileNotFoundError):
+        fs_utils.codeowners_path(repository_directory)
+
+    docs_path = repository_directory / 'docs'
+    docs_path.mkdir()
+    codeowners_path = docs_path / 'CODEOWNERS'
+    codeowners_path.touch()
+
+    assert fs_utils.codeowners_path(repository_directory) == codeowners_path
+    assert fs_utils.codeowners_path(repository_directory / 'a' / 'b') == codeowners_path
 
     with pytest.raises(FileNotFoundError):
-        fs_utils.codeowners_path(pathlib.Path())
+        fs_utils.codeowners_path(repository_directory.parent)
+        fs_utils.codeowners_path(Path())
