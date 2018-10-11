@@ -11,7 +11,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', ]
+# TODO: obtain these things from pipenv's Pipfile
+requirements = ['Click>=6.0', 'toolz>=0.8']
 
 setup_requirements = ['pytest-runner', ]
 
