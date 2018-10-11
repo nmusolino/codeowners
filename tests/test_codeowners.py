@@ -7,7 +7,6 @@ import pytest
 from codeowners import codeowners
 
 
-
 def test_parse_pattern():
     with pytest.raises(ValueError):
         codeowners.parse_pattern('a/**b/c')
@@ -20,10 +19,12 @@ def test_parse_pattern():
     assert pat2.dir_only, "Prefix '!' should negate the pattern."
     assert pat2.pattern == PurePath('a/b')
 
+
 def test_pattern_str():
     pat = codeowners.Pattern.parse('a/b')
     assert str(pat) == 'a/b'
     repr(pat)    # Confirm this does not raise.
+
 
 def test_pattern_match():
     nested_pat = codeowners.parse_pattern('a/b')
@@ -92,6 +93,7 @@ def test_pattern_match_directory_only():
     assert not dir_pat.match('bin', is_dir=False)
     assert not dir_pat.match('output/bin', is_dir=False)
 
+
 def test_pattern_match_inverted():
     inv_pat = codeowners.parse_pattern('!a/*.py')
     assert not inv_pat.match('a/file.py')
@@ -99,19 +101,22 @@ def test_pattern_match_inverted():
     assert inv_pat.match('b/file.py')
     assert inv_pat.match('b/file.txt')
 
+
 def test_is_rule():
     assert codeowners.is_rule('*.py ')
     assert codeowners.is_rule('a/b')
+    assert codeowners.is_rule(r'\#special_file\#')
     assert not codeowners.is_rule('# Comment')
     assert not codeowners.is_rule('')
     assert not codeowners.is_rule(' ')
+
 
 def test_parse_codeowners():
     # Test that comments are properly ignored, and that
     lines = ['*.*     @general_owner',
              '*.py    @a @b',
              '# Text files',
-             '*.txt   @x @y',]
+             '*.txt   @x @y']
     rules = codeowners.parse_codeowners(lines, source_filename='CODEOWNERS')
 
     result1 = codeowners.match(rules, 'file.py')
@@ -134,6 +139,7 @@ def test_parse_codeowners():
 
     result4 = codeowners.match(rules, 'c')
     assert result4 is None
+
 
 def test_parse_codeowners_escaped_spaces():
     lines = ['*\ docs.txt  @owner1',

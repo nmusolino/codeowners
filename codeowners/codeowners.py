@@ -103,7 +103,7 @@ class MatchResult(namedtuple('MatchResultData', 'path, owners, source_line, sour
 class Rule(namedtuple('RuleData', 'pattern, owners, source_line, source_filename, source_lineno')):
     def match(self, path, is_dir=False) -> typing.Optional[MatchResult]:
         return (MatchResult(path=path, owners=self.owners, source_line=self.source_line,
-                           source_filename=self.source_filename, source_lineno=self.source_lineno)
+                            source_filename=self.source_filename, source_lineno=self.source_lineno)
                 if self.pattern.match(path, is_dir=is_dir) else None)
 
 
