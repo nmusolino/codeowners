@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# PyCharm project files
+.idea/
+
 # Distribution / packaging
 .Python
 env/
@@ -51,3 +54,6 @@ target/
 
 # pyenv
 .python-version
+
+# Mac OS X Finder settings
+.DS_store
