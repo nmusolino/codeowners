@@ -77,13 +77,6 @@ def test_pattern_match_trailing_spaces():
 
 
 @pytest.mark.xfail
-def test_pattern_match_quoted_character():
-    pat = codeowners.parse_pattern(r'a/b\?')
-    assert pat.match('a/b?')
-    assert not pat.match('a/bx')
-
-
-@pytest.mark.xfail
 def test_pattern_match_rooted():
     root_pat = codeowners.parse_pattern('/a')
     assert root_pat.match('a')
