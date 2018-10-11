@@ -12,6 +12,7 @@ def repository_directory():
     with tempfile.TemporaryDirectory(prefix='test_fs_utils_') as temp_dir_name:
         temp_dir_path = Path(temp_dir_name)
         (temp_dir_path / '.git').mkdir()
+
         yield temp_dir_path
 
 
@@ -51,3 +52,20 @@ def test_codeowners_path(repository_directory):
     with pytest.raises(FileNotFoundError):
         fs_utils.codeowners_path(repository_directory.parent)
         fs_utils.codeowners_path(Path())
+
+
+def test_unique_paths(repository_directory):
+    dir = repository_directory
+    (dir / '.git').rmdir()
+    (dir / 'a').mkdir()
+    (dir / 'a' / 'b').mkdir()
+    (dir / 'a' / 'c').touch()
+    (dir / 'x').touch()
+
+    paths = [repository_directory, repository_directory / 'a']
+
+    # This ordered comparison is, strictly speaking,  too strict.
+    assert list(fs_utils.unique_paths(paths)) == paths
+
+    assert sorted(fs_utils.unique_paths(paths, recursive=True)) \
+            == sorted([dir, dir/'a', dir/'a'/'b', dir/'a'/'c', dir/'x'])
