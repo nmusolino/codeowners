@@ -117,6 +117,6 @@ def parse_codeowners(lines: typing.Iterable[str], source_filename: str) -> typin
     return [parse_line(line, i) for i, line in enumerate(lines, start=1) if is_rule(line)][::-1]
 
 
-def match(rules, path, is_dir=False):
+def match(rules, path, is_dir=False) -> typing.Optional[MatchResult]:
     return next(filter(lambda res: res is not None, (rule.match(path, is_dir=is_dir) for rule in rules)),
                 None)
