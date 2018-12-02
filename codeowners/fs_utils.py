@@ -1,5 +1,6 @@
 from itertools import chain
 from pathlib import Path
+import subprocess
 import typing
 
 import toolz
@@ -37,11 +38,14 @@ def codeowners_path(base_dir: Path) -> Path:
     return path
 
 
-def unique_paths(paths: typing.Iterable[Path], recursive: bool = False):
-    """ Return an iterable of Path objects, representing files. """
-    paths = list(map(Path, paths))
+def list_files(paths: typing.Iterable[Path], untracked: bool = False, recursive: bool = True):
+    """ Return an iterable of Paths representing non-ignored files recognized by git. """
+    if not recursive:
+        raise NotImplementedError('Only recursive traversal supported right now; got recursive: {!r}'.format(recursive))
 
-    if recursive:
-        paths = chain(paths, chain.from_iterable(p.glob('**/*') for p in paths))
+    tracked_options = ['--cached', '--others'] if untracked else ['--cached']
 
-    return toolz.itertoolz.unique(paths)
+    # In the future, we should process the output in a streaming fashion.
+    ls_result = subprocess.run(['git', 'ls-files', *tracked_options, *map(str, paths)],
+                               check=True, capture_output=True, text=True)
+    return [Path(p) for p in ls_result.stdout.splitlines()]

@@ -9,7 +9,7 @@ from codeowners import codeowners, fs_utils
 
 @click.command()
 @click.version_option()
-@click.option('--only-tracked/--untracked', is_flag=True, default=True,
+@click.option('--only-tracked/--include-untracked', is_flag=True, default=True,
               help='Include only files tracked by git in output, or include untracked files.  Default: include only tracked files.')
 @click.option('--recurse/--no-recurse', is_flag=True, default=True, help='Recursively walk the filesystem.  Default: recurves.')
 @click.argument('paths', type=click.Path(), nargs=-1)
@@ -18,7 +18,7 @@ def main(paths, only_tracked, recurse):
     if len(paths) == 0:
         paths = ('.',)
 
-    paths = fs_utils.unique_paths(paths, recursive=recurse)
+    paths = fs_utils.list_files(paths, untracked=not only_tracked, recursive=recurse)
 
     codeowners_path = fs_utils.codeowners_path(Path.cwd())
     with open(codeowners_path, 'r') as codeowners_file:
