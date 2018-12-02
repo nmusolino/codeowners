@@ -10,8 +10,10 @@ from codeowners import codeowners, fs_utils
 @click.command()
 @click.version_option()
 @click.option('--only-tracked/--include-untracked', is_flag=True, default=True,
-              help='Include only files tracked by git in output, or include untracked files.  Default: include only tracked files.')
-@click.option('--recurse/--no-recurse', is_flag=True, default=True, help='Recursively walk the filesystem.  Default: recurves.')
+              help='Include only files tracked by git in output, or include untracked files.  '
+                   'Default: include only tracked files.')
+@click.option('--recurse/--no-recurse', is_flag=True, default=True, help='Recursively walk the filesystem.  '
+              'Default: recurses.')
 @click.argument('paths', type=click.Path(), nargs=-1)
 def main(paths, only_tracked, recurse):
     click.echo('Paths: {}'.format(paths))
