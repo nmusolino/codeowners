@@ -17,4 +17,3 @@ twine = "==1.10.0"
 
 [packages]
 click = "==6.7"
-toolz = "*"

@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
 import tempfile
+import subprocess
 
 import pytest
 
@@ -10,10 +12,14 @@ from codeowners import fs_utils
 def repository_directory():
     """ Return a temporary directory, with a fake (empty) .git directory contained within. """
     with tempfile.TemporaryDirectory(prefix='test_fs_utils_') as temp_dir_name:
-        temp_dir_path = Path(temp_dir_name)
-        (temp_dir_path / '.git').mkdir()
+        subprocess.run(['git', 'init'], cwd=temp_dir_name)
 
-        yield temp_dir_path
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(temp_dir_name)
+            yield Path(temp_dir_name)
+        finally:
+            os.chdir(original_cwd)
 
 
 def test_git_repository_root(repository_directory):
@@ -54,18 +60,17 @@ def test_codeowners_path(repository_directory):
         fs_utils.codeowners_path(Path())
 
 
-def test_unique_paths(repository_directory):
-    dir = repository_directory
-    (dir / '.git').rmdir()
-    (dir / 'a').mkdir()
-    (dir / 'a' / 'b').mkdir()
-    (dir / 'a' / 'c').touch()
-    (dir / 'x').touch()
+def test_list_files(repository_directory):
+    assert list(fs_utils.list_files(['.'], untracked=True)) == []
+    assert list(fs_utils.list_files(['.'], untracked=False)) == []
 
-    paths = [repository_directory, repository_directory / 'a']
+    # File 'a' is tracked; file 'b' is untracked.
+    a = repository_directory / 'a'
+    a.touch()
+    subprocess.run(['git', 'add', str(a)])
 
-    # This ordered comparison is, strictly speaking,  too strict.
-    assert list(fs_utils.unique_paths(paths)) == paths
+    b = repository_directory / 'b'
+    b.touch()
 
-    assert sorted(fs_utils.unique_paths(paths, recursive=True)) \
-            == sorted([dir, dir/'a', dir/'a'/'b', dir/'a'/'c', dir/'x'])
+    assert sorted(fs_utils.list_files([repository_directory], untracked=True)) == [Path('a'), Path('b')]
+    assert sorted(fs_utils.list_files([repository_directory], untracked=False)) == [Path('a')]

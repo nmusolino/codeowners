@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 # TODO: obtain these things from pipenv's Pipfile
-requirements = ['Click>=6.0', 'toolz>=0.8']
+requirements = ['Click>=6.0']
 
 setup_requirements = ['pytest-runner', ]
 
