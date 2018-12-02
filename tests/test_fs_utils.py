@@ -12,13 +12,12 @@ from codeowners import fs_utils
 def repository_directory():
     """ Return a temporary directory, with a fake (empty) .git directory contained within. """
     with tempfile.TemporaryDirectory(prefix='test_fs_utils_') as temp_dir_name:
-        temp_dir_path = Path(temp_dir_name)
-        subprocess.run(['git', 'init'], cwd=temp_dir_path)
+        subprocess.run(['git', 'init'], cwd=temp_dir_name)
 
         original_cwd = os.getcwd()
         try:
-            os.chdir(temp_dir_path)
-            yield temp_dir_path
+            os.chdir(temp_dir_name)
+            yield Path(temp_dir_name)
         finally:
             os.chdir(original_cwd)
 

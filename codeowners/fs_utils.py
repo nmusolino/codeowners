@@ -44,5 +44,5 @@ def list_files(paths: typing.Iterable[Path], untracked: bool = False, recursive:
 
     # In the future, we should process the output in a streaming fashion.
     ls_result = subprocess.run(['git', 'ls-files', *tracked_options, *map(str, paths)],
-                               check=True, capture_output=True, text=True)
+                               check=True, stdout=subprocess.PIPE, universal_newlines=True)
     return [Path(p) for p in ls_result.stdout.splitlines()]
