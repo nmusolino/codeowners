@@ -1,9 +1,6 @@
-from itertools import chain
 from pathlib import Path
 import subprocess
 import typing
-
-import toolz
 
 
 # Possible locations of CODEOWNERS file, relative to repository root.
