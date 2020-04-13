@@ -5,6 +5,7 @@ from collections import namedtuple
 import itertools
 import fnmatch
 import logging
+import os
 from pathlib import PurePath
 import shlex
 import typing
@@ -47,7 +48,7 @@ class Pattern:
                                                   itertools.chain(path.parts, itertools.repeat(None))))
 
     def _match_recursive(self, path: PurePath):
-        raise NotImplementedError()
+        return path.match(os.path.join(*self.pattern.parts))
 
     def _match_any_part(self, path: PurePath):
         assert len(self.pattern.parts) == 1
