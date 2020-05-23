@@ -10,7 +10,7 @@ from codeowners import fs_utils
 
 @pytest.fixture(scope='function')
 def repository_directory():
-    """ Return a temporary directory, with a fake (empty) .git directory contained within. """
+    """Return a temporary directory, with an empty .git directory contained within."""
     with tempfile.TemporaryDirectory(prefix='test_fs_utils_') as temp_dir_name:
         subprocess.run(['git', 'init'], cwd=temp_dir_name)
 
@@ -23,12 +23,22 @@ def repository_directory():
 
 
 def test_git_repository_root(repository_directory):
-    assert fs_utils.git_repository_root(repository_directory) == repository_directory
-    assert fs_utils.git_repository_root(repository_directory / 'a') == repository_directory
-    assert fs_utils.git_repository_root(repository_directory / 'a' / 'b') == repository_directory
+    # Get the true path for this repository. At least on MacOS this is needed for the
+    # checks below to pass. Otherwise '/var/.....' != '/private/var...'.
+    repository_directory_resolved = repository_directory.resolve()
+
+    assert fs_utils.git_repository_root(repository_directory) == repository_directory_resolved
+    assert fs_utils.git_repository_root(repository_directory / 'a') == repository_directory_resolved
+    assert fs_utils.git_repository_root(repository_directory / 'a' / 'b') == repository_directory_resolved
+
+
+def test_git_repository_root_no_search_parent_directories(repository_directory):
+    # Get the true path for this repository. At least on MacOS this is needed for the
+    # checks below to pass. Otherwise '/var/.....' != '/private/var...'.
+    repository_directory_resolved = repository_directory.resolve()
 
     # When search_parent_directories is False, only the repository directory will work.
-    assert fs_utils.git_repository_root(repository_directory, search_parent_directories=False) == repository_directory
+    assert fs_utils.git_repository_root(repository_directory, search_parent_directories=False) == repository_directory_resolved
 
     with pytest.raises(FileNotFoundError):
         fs_utils.git_repository_root(repository_directory / 'a', search_parent_directories=False)
@@ -52,8 +62,12 @@ def test_codeowners_path(repository_directory):
     codeowners_path = docs_path / 'CODEOWNERS'
     codeowners_path.touch()
 
-    assert fs_utils.codeowners_path(repository_directory) == codeowners_path
-    assert fs_utils.codeowners_path(repository_directory / 'a' / 'b') == codeowners_path
+    # Get the true path for this repository. At least on MacOS this is needed for the
+    # checks below to pass. Otherwise '/var/.....' != '/private/var...'.
+    codeowners_path_resolved = codeowners_path.resolve()
+
+    assert fs_utils.codeowners_path(repository_directory) == codeowners_path_resolved
+    assert fs_utils.codeowners_path(repository_directory / 'a' / 'b') == codeowners_path_resolved
 
     with pytest.raises(FileNotFoundError):
         fs_utils.codeowners_path(repository_directory.parent)
