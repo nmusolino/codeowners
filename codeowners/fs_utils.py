@@ -8,18 +8,18 @@ _CODEOWNERS_REL_LOCATIONS = [Path('docs/CODEOWNERS'), Path('.github/CODEOWNERS')
 
 
 def git_repository_root(base_dir: Path, search_parent_directories=True) -> Path:
-    dir = base_dir
+    base_dir = Path(base_dir)
     while True:
-        if (dir / '.git').exists():
-            return dir
+        if (base_dir / '.git').exists():
+            return base_dir.resolve()
 
         if not search_parent_directories:
             break
 
-        if dir == Path('/') or dir == Path():
+        if base_dir == Path('/') or base_dir == Path():
             break
 
-        dir = dir.parent
+        base_dir = base_dir.parent
 
     raise FileNotFoundError("Could not find .git directory in:  {base_dir}{msg}".format(
         base_dir=base_dir, msg=' (or any parent)' if search_parent_directories else ''))

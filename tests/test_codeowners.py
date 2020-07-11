@@ -62,13 +62,13 @@ def test_pattern_match_single_component():
     assert pat2.match('output/docs1/output.txt', is_dir=True)
 
 
-@pytest.mark.xfail
 def test_pattern_match_recursive():
     rec_pat = codeowners.parse_pattern('a/**/b')
     assert rec_pat.match('a/b')
     assert rec_pat.match('a/x/b')
     assert rec_pat.match('a/x/y/z/b')
-    assert rec_pat.match('a/x/y/z/c')
+    # Does not end in 'b', no match.
+    assert not rec_pat.match('a/x/y/z/c')
 
 
 def test_pattern_match_trailing_spaces():

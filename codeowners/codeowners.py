@@ -6,6 +6,7 @@ import itertools
 import fnmatch
 import logging
 from pathlib import PurePath
+import re
 import shlex
 import typing
 
@@ -22,11 +23,14 @@ class Pattern:
 
     def __init__(self, pattern: PurePath, dir_only: bool, root_only: bool, invert: bool):
         self.pattern = pattern
+        self._regex_pattern = None
         self.dir_only = dir_only
         self.root_only = root_only
         self.invert = invert
 
         if any(part == '**' for part in pattern.parts):
+            regex = self._prepare_recursive_pattern_as_regex(pattern)
+            self._regex_pattern = re.compile(regex)
             self._match_impl = self._match_recursive
         elif len(self.pattern.parts) == 1:
             self._match_impl = self._match_any_part
@@ -41,13 +45,36 @@ class Pattern:
         return '{cls}(pattern={pattern!r}, dir_only={dir_only!r}, invert={invert!r}'.format(
             cls=self.__class__.__name__, pattern=self.pattern, dir_only=self.dir_only, invert=self.invert)
 
+    def _prepare_recursive_pattern_as_regex(self, pattern):
+        regex_pattern_parts = []
+
+        # Add directory separators in or the regex won't properly match.
+        # The last can be a directory or file, either way it does not need a slash.
+        parts = [p + '/' for p in pattern.parts[:-1]] + [pattern.parts[-1]]
+        for pattern in parts:
+            # Because of the transformation above the recursive elements now have a slash.
+            if pattern == '**/':
+                regex_pattern_parts.append('(:?.*/)*')
+            elif pattern == '**':
+                # Not sure what to do with a regex that ends in recursion. Is this valid?
+                raise NotImplementedError("Recursion not understood.")
+            else:
+                regex = fnmatch.translate(pattern)
+                # Drop the "end of string" check from each component. Otherwise the
+                # match won't work when glued together.
+                if regex.endswith('\\Z'):
+                    regex = regex[0:-2]
+                regex_pattern_parts.append(regex)
+
+        return ''.join(regex_pattern_parts)
+
     def _match_leading(self, path: PurePath):
         return all(path_part is not None and fnmatch.fnmatch(path_part, pat_part)
                    for pat_part, path_part in zip(self.pattern.parts,
                                                   itertools.chain(path.parts, itertools.repeat(None))))
 
     def _match_recursive(self, path: PurePath):
-        raise NotImplementedError()
+        return self._regex_pattern.match(str(path)) is not None
 
     def _match_any_part(self, path: PurePath):
         assert len(self.pattern.parts) == 1
